@@ -1,0 +1,15 @@
+{"booking_id":101,"customer_id":1,"court_id":1,"start_time":"2026-11-20T18:00:00","duration_minutes":90}
+{"booking_id":102,"customer_id":2,"court_id":2,"start_time":"2026-11-20T18:00:00","duration_minutes":60}
+{"booking_id":103,"customer_id":1,"court_id":1,"start_time":"2026-11-20T19:30:00","duration_minutes":60}
+{"booking_id":104,"customer_id":2,"court_id":1,"start_time":"2026-11-21T17:00:00","duration_minutes":120}
+{"booking_id":105,"customer_id":1,"court_id":2,"start_time":"2026-11-21T18:00:00","duration_minutes":90}
+{"booking_id":106,"customer_id":2,"court_id":1,"start_time":"2026-11-21T19:00:00","duration_minutes":60}
+{"booking_id":107,"customer_id":1,"court_id":1,"start_time":"2026-11-22T16:00:00","duration_minutes":60}
+{"booking_id":108,"customer_id":2,"court_id":2,"start_time":"2026-11-22T17:00:00","duration_minutes":120}
+{"booking_id":109,"customer_id":1,"court_id":1,"start_time":"2026-11-22T18:00:00","duration_minutes":90}
+{"booking_id":110,"customer_id":2,"court_id":1,"start_time":"2026-11-23T18:00:00","duration_minutes":90}
+{"booking_id":111,"customer_id":1,"court_id":2,"start_time":"2026-11-23T18:30:00","duration_minutes":60}
+{"booking_id":112,"customer_id":2,"court_id":1,"start_time":"2026-11-23T19:30:00","duration_minutes":90}
+{"booking_id":113,"customer_id":1,"court_id":1,"start_time":"2026-11-24T17:00:00","duration_minutes":60}
+{"booking_id":114,"customer_id":2,"court_id":2,"start_time":"2026-11-24T18:00:00","duration_minutes":90}
+{"booking_id":115,"customer_id":1,"court_id":1,"start_time":"2026-11-24T19:00:00","duration_minutes":120}

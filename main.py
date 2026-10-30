@@ -18,6 +18,9 @@ from padelbook.processing import (
     booking_prices,
     split_first_booking,
 )
+from pathlib import Path
+
+from padelbook.repository import load_bookings
 
 def main():
     customer = Customer(1, "  Demo Player  ")
@@ -323,6 +326,44 @@ def main():
 
     assert pending_contact == customer_ids
     print(f"Customers still awaiting contact: {len(pending_contact)}") 
+    data_path = (
+        Path(__file__).resolve().parent
+        / "data"
+        / "sample_data.jsonl"
+    )
+
+    customers_by_id = {
+        customer.customer_id: customer,
+        another_customer.customer_id: another_customer,
+    }
+
+    courts_by_id = {
+        court.court_id: court
+        for court in courts
+    }
+
+    loaded_bookings = load_bookings(
+        data_path,
+        customers_by_id,
+        courts_by_id,
+    )
+
+    assert len(loaded_bookings) == 15
+    assert loaded_bookings[101].price == 240
+    assert loaded_bookings[102].price == 160
+
+    print(f"Loaded bookings: {len(loaded_bookings)}")
+    print(f"Booking 101 price: {loaded_bookings[101].price:.2f} NIS")
+
+    loaded_club = PadelClub("Loaded Demo Club")
+
+    for court in courts:
+        loaded_club.add_court(court)
+
+    for booking in loaded_bookings.values():
+        loaded_club.add_booking(booking)
+
+    print("All loaded bookings accepted by the club")
 
 
 if __name__ == "__main__":
