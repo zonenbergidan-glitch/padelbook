@@ -14,8 +14,12 @@ class Customer:
         if not name:
             raise ValueError("Customer name cannot be empty")
 
-        self.customer_id = customer_id
+        self._customer_id = customer_id
         self.name = name
+
+    @property
+    def customer_id(self):
+        return self._customer_id
 
     def __str__(self):
         return f"Customer #{self.customer_id}: {self.name}"
@@ -56,9 +60,27 @@ class Court:
         ):
             raise ValueError("Hourly rate must be a positive finite number")
 
-        self.court_id = court_id
+        self._court_id = court_id
         self.name = name.strip()
         self.hourly_rate = hourly_rate
+
+
+    @property
+    def hourly_rate(self):
+        return self._hourly_rate
+
+    @hourly_rate.setter
+    def hourly_rate(self, value):
+        if (
+            type(value) not in (int, float)
+            or not 0 < value < float("inf")
+        ):
+            raise ValueError("Hourly rate must be a positive finite number")
+
+        self._hourly_rate = value
+    @property
+    def court_id(self):
+        return self._court_id
 
     def calculate_price(self, duration_minutes):
         if type(duration_minutes) is not int or duration_minutes <= 0:
@@ -154,14 +176,26 @@ class Booking:
         # המתודה הקיימת גם בודקת שמשך המשחק תקין.
         price = court.calculate_price(duration_minutes)
 
-        self.booking_id = booking_id
-        self.customer = customer
-        self.court = court
+        self._booking_id = booking_id
+        self._customer = customer
+        self._court = court
         self._start_time = start_time
         self._duration_minutes = duration_minutes
         self._price = price
         self._status = "confirmed"
         self._requires_review = False
+
+    @property
+    def booking_id(self):
+        return self._booking_id
+
+    @property
+    def customer(self):
+        return self._customer
+
+    @property
+    def court(self):
+        return self._court
 
     @property
     def start_time(self):
@@ -298,8 +332,8 @@ class PadelClub:
         return self._courts.get(court_id)
 
     def add_booking(self, booking):
-        if not self.is_court_operational(booking.court.court_id):
-            raise ValueError("Court is unavailable due to maintenance")
+        if not isinstance(booking, Booking):
+            raise ValueError("Booking must be a Booking object")
 
         if booking.booking_id in self._bookings:
             raise ValueError("Booking ID already exists")
@@ -309,6 +343,8 @@ class PadelClub:
         if registered_court is not booking.court:
             raise ValueError("Booking court must be registered in this club")
 
+        if not self.is_court_operational(booking.court.court_id):
+            raise ValueError("Court is unavailable due to maintenance")
         if booking.status != "confirmed":
             raise ValueError("Only confirmed bookings can be added")
 
