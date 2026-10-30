@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from padelbook.models import Customer, OutdoorCourt, IndoorCourt, Booking
+from padelbook.models import Customer, OutdoorCourt, IndoorCourt, Booking , WaitRequest
 from padelbook.models import (
     Customer,
     OutdoorCourt,
@@ -115,6 +115,70 @@ def main():
     assert club.get_booking(12) is next_booking
 
     print("Back-to-back booking accepted")
+
+    for request_id in (1, 2, 3):
+        request = WaitRequest(
+            request_id,
+            customer,
+            courts[0],
+            datetime(2026, 11, 10, 18, 0),
+            90,
+        )
+        club.add_wait_request(request)
+
+    assert club.waiting_count == 3
+
+    for expected_id in (1, 2, 3):
+        request = club.pop_wait_request()
+        assert request.request_id == expected_id
+        print(f"Next wait request: {request.request_id}")
+
+    assert club.waiting_count == 0
+    assert club.pop_wait_request() is None
+
+    print("Empty waiting list handled")
+
+    requests = [
+        WaitRequest(
+            10, customer, courts[1],
+            datetime(2026, 11, 10, 18, 0), 90,
+        ),
+        WaitRequest(
+            11, customer, courts[0],
+            datetime(2026, 11, 10, 18, 0), 90,
+        ),
+        WaitRequest(
+            12, customer, courts[0],
+            datetime(2026, 11, 10, 18, 0), 90,
+        ),
+    ]
+
+    for request in requests:
+        club.add_wait_request(request)
+
+    # הזמנה 10 נוצרה קודם ונוספה למועדון.
+    first_booking.cancel(datetime(2026, 11, 10, 0, 0))
+
+    selected = club.pop_matching_wait_request(first_booking.booking_id)
+
+    assert selected.request_id == 11
+    assert club.waiting_count == 2
+
+    print(f"Matching request: {selected.request_id}")
+
+    # בקשה 10 למגרש אחר; בקשה 12 מתאימה אך הגיעה אחרי 11.
+    remaining_first = club.pop_wait_request()
+    remaining_second = club.pop_wait_request()
+
+    assert remaining_first.request_id == 10
+    assert remaining_second.request_id == 12
+
+    print(
+        f"Remaining order: "
+        f"{remaining_first.request_id}, {remaining_second.request_id}"
+    )
+
+    assert club.pop_matching_wait_request(first_booking.booking_id) is None
 
 if __name__ == "__main__":
     main()

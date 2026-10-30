@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from collections import deque
 class Customer:
     def __init__(self, customer_id, name):
         if type(customer_id) is not int or customer_id <= 0:
@@ -270,6 +271,7 @@ class PadelClub:
         self.name = name.strip()
         self._courts = {}
         self._bookings = {}
+        self._waiting_list = deque()
 
     def add_court(self, court):
         if not isinstance(court, Court):
@@ -315,6 +317,55 @@ class PadelClub:
 
     def get_booking(self, booking_id):
         return self._bookings.get(booking_id)
+    def add_wait_request(self, request):
+        if not isinstance(request, WaitRequest):
+            raise ValueError("Request must be a WaitRequest object")
+
+        if self.get_court(request.court.court_id) is not request.court:
+            raise ValueError("Requested court must be registered in this club")
+
+        for existing in self._waiting_list:
+            if existing.request_id == request.request_id:
+                raise ValueError("Wait request ID already exists")
+
+        self._waiting_list.append(request)
+
+    def pop_wait_request(self):
+        if not self._waiting_list:
+            return None
+
+        return self._waiting_list.popleft()
+
+    @property
+    def waiting_count(self):
+        return len(self._waiting_list)
+    def pop_matching_wait_request(self, booking_id):
+        booking = self.get_booking(booking_id)
+
+        if booking is None:
+            raise ValueError("Booking does not exist")
+
+        if booking.status != "cancelled":
+            raise ValueError("Booking must be cancelled first")
+
+        selected = None
+        request_count = len(self._waiting_list)
+
+        for _ in range(request_count):
+            request = self._waiting_list.popleft()
+
+            matches = (
+                request.court is booking.court
+                and request.start_time == booking.start_time
+                and request.duration_minutes == booking.duration_minutes
+            )
+
+            if selected is None and matches:
+                selected = request
+            else:
+                self._waiting_list.append(request)
+
+        return selected
 
     def __len__(self):
         return len(self._courts)
@@ -327,5 +378,58 @@ class PadelClub:
             f"PadelClub(name={self.name!r}, "
             f"court_count={len(self)}, "
             f"booking_count={len(self._bookings)})"
-        )    
+        ) 
+     
+class WaitRequest:
+    def __init__(
+        self,
+        request_id,
+        customer,
+        court,
+        start_time,
+        duration_minutes,
+    ):
+        if type(request_id) is not int or request_id <= 0:
+            raise ValueError("Request ID must be a positive integer")
+
+        if not isinstance(customer, Customer):
+            raise ValueError("Customer must be a Customer object")
+
+        if not isinstance(court, Court):
+            raise ValueError("Court must be a Court object")
+
+        if not isinstance(start_time, datetime):
+            raise ValueError("Start time must be a datetime object")
+
+        if start_time.tzinfo is not None:
+            raise ValueError("Start time must be a local datetime without timezone")
+
+        # שימוש בבדיקת משך המשחק שכבר קיימת במגרש.
+        court.calculate_price(duration_minutes)
+
+        self.request_id = request_id
+        self.customer = customer
+        self.court = court
+        self.start_time = start_time
+        self.duration_minutes = duration_minutes
+
+    @property
+    def end_time(self):
+        return self.start_time + timedelta(minutes=self.duration_minutes)
+
+    def __str__(self):
+        return (
+            f"Wait request #{self.request_id}: "
+            f"{self.customer.name}, {self.court.name}, "
+            f"{self.start_time:%d/%m/%Y %H:%M}"
+        )
+
+    def __repr__(self):
+        return (
+            f"WaitRequest(request_id={self.request_id!r}, "
+            f"customer_id={self.customer.customer_id!r}, "
+            f"court_id={self.court.court_id!r}, "
+            f"start_time={self.start_time!r}, "
+            f"duration_minutes={self.duration_minutes!r})"
+        )  
 
