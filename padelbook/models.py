@@ -261,4 +261,71 @@ class Booking:
             f"duration_minutes={self.duration_minutes!r}, "
             f"price={self.price!r}, status={self.status!r})"
         )
-    
+
+class PadelClub:
+    def __init__(self, name):
+        if not isinstance(name, str) or not name.strip():
+            raise ValueError("Club name must be a non-empty string")
+
+        self.name = name.strip()
+        self._courts = {}
+        self._bookings = {}
+
+    def add_court(self, court):
+        if not isinstance(court, Court):
+            raise ValueError("Court must be a Court object")
+
+        if court.court_id in self._courts:
+            raise ValueError("Court ID already exists")
+
+        self._courts[court.court_id] = court
+
+    def get_court(self, court_id):
+        return self._courts.get(court_id)
+
+    def add_booking(self, booking):
+        if not isinstance(booking, Booking):
+            raise ValueError("Booking must be a Booking object")
+
+        if booking.booking_id in self._bookings:
+            raise ValueError("Booking ID already exists")
+
+        registered_court = self.get_court(booking.court.court_id)
+
+        if registered_court is not booking.court:
+            raise ValueError("Booking court must be registered in this club")
+
+        if booking.status != "confirmed":
+            raise ValueError("Only confirmed bookings can be added")
+
+        for existing in self._bookings.values():
+            if existing.status != "confirmed":
+                continue
+
+            if existing.court.court_id != booking.court.court_id:
+                continue
+
+            if (
+                booking.start_time < existing.end_time
+                and existing.start_time < booking.end_time
+            ):
+                raise ValueError("Court is already booked for this time")
+
+        self._bookings[booking.booking_id] = booking
+
+    def get_booking(self, booking_id):
+        return self._bookings.get(booking_id)
+
+    def __len__(self):
+        return len(self._courts)
+
+    def __str__(self):
+        return f"{self.name}: {len(self)} courts"
+
+    def __repr__(self):
+        return (
+            f"PadelClub(name={self.name!r}, "
+            f"court_count={len(self)}, "
+            f"booking_count={len(self._bookings)})"
+        )    
+

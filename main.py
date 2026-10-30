@@ -1,6 +1,13 @@
 from datetime import datetime
 
 from padelbook.models import Customer, OutdoorCourt, IndoorCourt, Booking
+from padelbook.models import (
+    Customer,
+    OutdoorCourt,
+    IndoorCourt,
+    Booking,
+    PadelClub,
+)
 
 def main():
     customer = Customer(1, "  Demo Player  ")
@@ -65,6 +72,49 @@ def main():
         indoor_booking.cancel(datetime(2026, 11, 10, 0, 0))
     except ValueError as error:
         print(error)
+    club = PadelClub("Demo Padel Club")
+
+    for court in courts:
+        club.add_court(court)
+
+    assert len(club) == 2
+    assert club.get_court(1) is courts[0]
+    assert club.get_court(999) is None
+
+    print(club)
+
+    try:
+        club.add_court(courts[0])
+    except ValueError as error:
+        print(error)
+    first_booking = Booking(
+        10, customer, courts[0],
+        datetime(2026, 11, 10, 18, 0), 90,
+    )
+    club.add_booking(first_booking)
+
+    overlapping_booking = Booking(
+        11, customer, courts[0],
+        datetime(2026, 11, 10, 19, 0), 60,
+    )
+
+    try:
+        club.add_booking(overlapping_booking)
+    except ValueError as error:
+        print(error)
+
+    assert club.get_booking(11) is None
+
+    next_booking = Booking(
+        12, customer, courts[0],
+        datetime(2026, 11, 10, 19, 30), 60,
+    )
+    club.add_booking(next_booking)
+
+    assert club.get_booking(10) is first_booking
+    assert club.get_booking(12) is next_booking
+
+    print("Back-to-back booking accepted")
 
 if __name__ == "__main__":
     main()
