@@ -20,6 +20,16 @@ class Customer:
     @property
     def customer_id(self):
         return self._customer_id
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, value):
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError("Customer name must be a non-empty string")
+
+        self._name = value.strip()
 
     def __str__(self):
         return f"Customer #{self.customer_id}: {self.name}"
