@@ -21,6 +21,11 @@ from padelbook.processing import (
 from pathlib import Path
 
 from padelbook.repository import load_bookings
+from padelbook.iterators import (
+    BookingCollection,
+    generate_confirmed_bookings,
+    booking_ids_pipeline,
+)
 
 def main():
     customer = Customer(1, "  Demo Player  ")
@@ -364,6 +369,79 @@ def main():
         loaded_club.add_booking(booking)
 
     print("All loaded bookings accepted by the club")
+    collection = BookingCollection(loaded_bookings.values())
+
+    first_iterator = iter(collection)
+    second_iterator = iter(collection)
+
+    assert first_iterator is not second_iterator
+
+    first_booking_a = next(first_iterator)
+    second_booking_a = next(first_iterator)
+    first_booking_b = next(second_iterator)
+
+    assert first_booking_a.booking_id == 101
+    assert second_booking_a.booking_id == 102
+    assert first_booking_b.booking_id == 101
+
+    print(
+        "First iterator:",
+        first_booking_a.booking_id,
+        second_booking_a.booking_id,
+    )
+    print("Second iterator:", first_booking_b.booking_id)
+
+    visited_ids = [
+        booking.booking_id
+        for booking in collection
+    ]
+
+    assert visited_ids == list(range(101, 116))
+    print(f"Collection traversal: {len(visited_ids)} bookings")
+
+    empty_iterator = iter(BookingCollection([]))
+
+    try:
+        next(empty_iterator)
+    except StopIteration:
+        print("Empty iterator raises StopIteration")
+    confirmed_generator = generate_confirmed_bookings(all_bookings)
+
+    print("Generator created")
+
+    first_generated = next(confirmed_generator)
+    assert first_generated.booking_id == 12
+    print(f"First generated booking: {first_generated.booking_id}")
+
+    remaining_ids = []
+
+    for booking in confirmed_generator:
+        remaining_ids.append(booking.booking_id)
+
+    assert remaining_ids == [30]
+    print(f"Remaining generated bookings: {remaining_ids}")
+
+    assert list(confirmed_generator) == []
+    print("Exhausted generator returns no more bookings")
+
+    restarted_ids = [
+        booking.booking_id
+        for booking in generate_confirmed_bookings(all_bookings)
+    ]
+
+    assert restarted_ids == [12, 30]
+    print(f"New generator starts again: {restarted_ids}")
+    pipeline = booking_ids_pipeline(collection, minimum_price=200)
+
+    first_id = next(pipeline)
+    second_id = next(pipeline)
+
+    assert first_id == 101
+    assert second_id == 104
+
+    print(f"First two pipeline results: {first_id}, {second_id}")
+
+    # עוצרים כאן: לא צורכים את יתר התוצאות.
 
 
 if __name__ == "__main__":
