@@ -8,6 +8,16 @@ from padelbook.models import (
     Booking,
     PadelClub,
 )
+from padelbook.processing import (
+    confirmed_bookings,
+    unique_customer_ids,
+    index_bookings,
+    confirmed_count_by_court,
+    sort_by_start_time,
+    sort_by_court_and_start,
+    booking_prices,
+    split_first_booking,
+)
 
 def main():
     customer = Customer(1, "  Demo Player  ")
@@ -255,6 +265,65 @@ def main():
     assert maintenance_booking.requires_review
 
     print("Review flag preserved after repair")
+    all_bookings = club.get_bookings()
+    active_bookings = confirmed_bookings(all_bookings)
+
+    customer_ids = unique_customer_ids(active_bookings)
+    booking_index = index_bookings(all_bookings)
+    counts = confirmed_count_by_court(all_bookings)
+
+    assert all(
+        booking.status == "confirmed"
+        for booking in active_bookings
+    )
+    assert booking_index[30] is maintenance_booking
+
+    print(f"Customers with confirmed bookings: {len(customer_ids)}")
+
+    for court_id, count in counts.items():
+        print(f"Court {court_id}: {count} confirmed bookings")
+
+    ordered_bookings = sort_by_start_time(active_bookings)
+    print(
+        "Bookings by start time:",
+        [booking.booking_id for booking in ordered_bookings],
+    )
+
+    ordered_by_court = sort_by_court_and_start(active_bookings)
+    print(
+        "Bookings by court and start:",
+        [booking.booking_id for booking in ordered_by_court],
+    ) 
+    
+    prices = booking_prices(active_bookings)
+
+    assert prices == {12: 160, 30: 240}
+    print(f"Booking prices: {prices}")
+
+    first, remaining = split_first_booking(ordered_bookings)
+
+    assert first.booking_id == 12
+    assert [booking.booking_id for booking in remaining] == [30]
+    assert split_first_booking([]) == (None, [])
+
+    print(f"First booking: {first.booking_id}")
+    print(f"Remaining bookings: {len(remaining)}")
+
+    # מעקב אחר לקוחות שהקבלה צריכה ליצור איתם קשר.
+    pending_contact = set(customer_ids)
+
+    pending_contact.add(another_customer.customer_id)
+    assert another_customer.customer_id in pending_contact
+
+    # הלקוח הנוסף טופל ולכן מוסר מהקבוצה.
+    pending_contact.discard(another_customer.customer_id)
+
+    # discard אינו נכשל גם כשהמזהה כבר אינו בקבוצה.
+    pending_contact.discard(another_customer.customer_id)
+
+    assert pending_contact == customer_ids
+    print(f"Customers still awaiting contact: {len(pending_contact)}") 
+
 
 if __name__ == "__main__":
     main()

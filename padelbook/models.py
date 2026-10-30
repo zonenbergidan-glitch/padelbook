@@ -434,6 +434,9 @@ class PadelClub:
 
         issue.close()
 
+    def get_bookings(self):
+        return list(self._bookings.values())
+
     def __len__(self):
         return len(self._courts)
 
