@@ -1,5 +1,4 @@
-from padelbook.models import Customer
-
+from padelbook.models import Customer, OutdoorCourt, IndoorCourt
 
 def main():
     customer = Customer(1, "  Demo Player  ")
@@ -19,5 +18,18 @@ def main():
         print(error)
 
 
+    courts = [
+        OutdoorCourt(1, "Outdoor A", 160),
+        IndoorCourt(2, "Indoor A", 160),
+    ]
+
+    expected_fees = [0, 120]
+
+    for court, expected in zip(courts, expected_fees):
+        fee = court.cancellation_fee(240, 18)
+        assert fee == expected, f"Expected {expected}, got {fee}"
+        print(f"{court.name}: cancellation fee = {fee:.2f} NIS")
+
 if __name__ == "__main__":
     main()
+        
