@@ -1,4 +1,6 @@
-from padelbook.models import Customer, OutdoorCourt, IndoorCourt
+from datetime import datetime
+
+from padelbook.models import Customer, OutdoorCourt, IndoorCourt, Booking
 
 def main():
     customer = Customer(1, "  Demo Player  ")
@@ -34,6 +36,33 @@ def main():
 
     try:
         courts[0].calculate_price(0)
+    except ValueError as error:
+        print(error)
+
+    booking_data = {
+        "booking_id": 2,
+        "customer_id": customer.customer_id,
+        "court_id": courts[1].court_id,
+        "start_time": "2026-11-10T18:00:00",
+        "duration_minutes": 90,
+    }
+
+    indoor_booking = Booking.from_dict(
+        booking_data,
+        customer,
+        courts[1],
+    )
+
+    fee = indoor_booking.cancel(datetime(2026, 11, 10, 0, 0))
+
+    assert fee == 120
+    assert indoor_booking.status == "cancelled"
+
+    print(f"Cancellation fee: {fee:.2f} NIS")
+    print(f"Booking status: {indoor_booking.status}")
+
+    try:
+        indoor_booking.cancel(datetime(2026, 11, 10, 0, 0))
     except ValueError as error:
         print(error)
 

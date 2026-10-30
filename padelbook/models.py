@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 class Customer:
     def __init__(self, customer_id, name):
         if type(customer_id) is not int or customer_id <= 0:
@@ -122,4 +123,142 @@ class IndoorCourt(Court):
             return booking_price * 0.5
 
         return booking_price
+    
+class Booking:
+    def __init__(
+        self,
+        booking_id,
+        customer,
+        court,
+        start_time,
+        duration_minutes,
+    ):
+        if type(booking_id) is not int or booking_id <= 0:
+            raise ValueError("Booking ID must be a positive integer")
+
+        if not isinstance(customer, Customer):
+            raise ValueError("Customer must be a Customer object")
+
+        if not isinstance(court, Court):
+            raise ValueError("Court must be a Court object")
+
+        if not isinstance(start_time, datetime):
+            raise ValueError("Start time must be a datetime object")
+
+        # בשלב זה כל המועדים הם זמנים מקומיים ללא אזור זמן.
+        if start_time.tzinfo is not None:
+            raise ValueError("Start time must be a local datetime without timezone")
+
+        # המתודה הקיימת גם בודקת שמשך המשחק תקין.
+        price = court.calculate_price(duration_minutes)
+
+        self.booking_id = booking_id
+        self.customer = customer
+        self.court = court
+        self._start_time = start_time
+        self._duration_minutes = duration_minutes
+        self._price = price
+        self._status = "confirmed"
+
+    @property
+    def start_time(self):
+        return self._start_time
+
+    @property
+    def duration_minutes(self):
+        return self._duration_minutes
+
+    @property
+    def end_time(self):
+        return self.start_time + timedelta(minutes=self.duration_minutes)
+
+    @property
+    def price(self):
+        return self._price
+
+    @property
+    def status(self):
+        return self._status
+    @classmethod
+    def from_dict(cls, data, customer, court):
+        if not isinstance(data, dict):
+            raise ValueError("Booking data must be a dictionary")
+
+        required = (
+            "booking_id",
+            "customer_id",
+            "court_id",
+            "start_time",
+            "duration_minutes",
+        )
+
+        if any(field not in data for field in required):
+            raise ValueError("Booking data is missing required fields")
+
+        if not isinstance(customer, Customer):
+            raise ValueError("Customer must be a Customer object")
+
+        if not isinstance(court, Court):
+            raise ValueError("Court must be a Court object")
+
+        if data["customer_id"] != customer.customer_id:
+            raise ValueError("Customer ID does not match the supplied customer")
+
+        if data["court_id"] != court.court_id:
+            raise ValueError("Court ID does not match the supplied court")
+
+        try:
+            start_time = datetime.fromisoformat(data["start_time"])
+        except (TypeError, ValueError):
+            raise ValueError("Start time must be a valid ISO datetime string") from None
+
+        return cls(
+            data["booking_id"],
+            customer,
+            court,
+            start_time,
+            data["duration_minutes"],
+        )
+
+    def cancel(self, cancelled_at):
+        if self.status == "cancelled":
+            raise ValueError("Booking is already cancelled")
+
+        if not isinstance(cancelled_at, datetime):
+            raise ValueError("Cancellation time must be a datetime object")
+
+        if cancelled_at.tzinfo is not None:
+            raise ValueError("Cancellation time must be a local datetime without timezone")
+
+        if cancelled_at >= self.start_time:
+            raise ValueError("Booking must be cancelled before it starts")
+
+        hours_before = (
+            self.start_time - cancelled_at
+        ).total_seconds() / 3600
+
+        fee = self.court.cancellation_fee(self.price, hours_before)
+
+        self._status = "cancelled"
+
+        return fee
+
+    def __str__(self):
+        return (
+            f"Booking #{self.booking_id}: {self.customer.name}, "
+            f"{self.court.name}, "
+            f"{self.start_time:%d/%m/%Y %H:%M}"
+            f"–{self.end_time:%H:%M}, "
+            f"{self.price:.2f} NIS, {self.status}"
+        )
+
+    def __repr__(self):
+        return (
+            f"Booking(booking_id={self.booking_id!r}, "
+            f"customer_id={self.customer.customer_id!r}, "
+            f"court_id={self.court.court_id!r}, "
+            f"start_time={self.start_time!r}, "
+            f"duration_minutes={self.duration_minutes!r}, "
+            f"price={self.price!r}, status={self.status!r})"
+        )
     
