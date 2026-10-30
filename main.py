@@ -26,6 +26,7 @@ from padelbook.iterators import (
     generate_confirmed_bookings,
     booking_ids_pipeline,
 )
+from padelbook.context_managers import OperationTimer
 
 def main():
     customer = Customer(1, "  Demo Player  ")
@@ -442,7 +443,30 @@ def main():
     print(f"First two pipeline results: {first_id}, {second_id}")
 
     # עוצרים כאן: לא צורכים את יתר התוצאות.
+    with OperationTimer("Booking summary") as timer:
+        summary = confirmed_count_by_court(loaded_bookings.values())
 
+    assert sum(summary.values()) == 15
+    assert timer.elapsed_seconds is not None
+    assert timer.elapsed_seconds >= 0
+
+    print(
+        f"{timer.operation_name} completed in "
+        f"{timer.elapsed_seconds:.6f} seconds"
+    )
+
+    failed_timer = OperationTimer("Invalid booking price")
+
+    try:
+        with failed_timer:
+            courts[0].calculate_price(0)
+    except ValueError as error:
+        print(f"Expected error: {error}")
+
+    assert failed_timer.elapsed_seconds is not None
+    assert failed_timer.elapsed_seconds >= 0
+
+    print("Timer completed even when an exception occurred")
 
 if __name__ == "__main__":
     main()
