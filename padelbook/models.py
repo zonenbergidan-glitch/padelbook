@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
-from collections import deque
+from collections import deque 
+import heapq
 class Customer:
     def __init__(self, customer_id, name):
         if type(customer_id) is not int or customer_id <= 0:
@@ -160,6 +161,7 @@ class Booking:
         self._duration_minutes = duration_minutes
         self._price = price
         self._status = "confirmed"
+        self._requires_review = False
 
     @property
     def start_time(self):
@@ -243,6 +245,13 @@ class Booking:
         self._status = "cancelled"
 
         return fee
+    @property
+    def requires_review(self):
+        return self._requires_review
+
+    def mark_for_review(self):
+        if self.status == "confirmed":
+            self._requires_review = True
 
     def __str__(self):
         return (
@@ -272,6 +281,9 @@ class PadelClub:
         self._courts = {}
         self._bookings = {}
         self._waiting_list = deque()
+        self._issues = {}
+        self._issue_queue = []
+        self._issue_sequence = 0
 
     def add_court(self, court):
         if not isinstance(court, Court):
@@ -286,8 +298,8 @@ class PadelClub:
         return self._courts.get(court_id)
 
     def add_booking(self, booking):
-        if not isinstance(booking, Booking):
-            raise ValueError("Booking must be a Booking object")
+        if not self.is_court_operational(booking.court.court_id):
+            raise ValueError("Court is unavailable due to maintenance")
 
         if booking.booking_id in self._bookings:
             raise ValueError("Booking ID already exists")
@@ -366,6 +378,61 @@ class PadelClub:
                 self._waiting_list.append(request)
 
         return selected
+    def add_issue(self, issue):
+        if not isinstance(issue, MaintenanceIssue):
+            raise ValueError("Issue must be a MaintenanceIssue object")
+
+        if self.get_court(issue.court.court_id) is not issue.court:
+            raise ValueError("Issue court must be registered in this club")
+
+        if issue.issue_id in self._issues:
+            raise ValueError("Issue ID already exists")
+
+        self._issues[issue.issue_id] = issue
+        self._issue_sequence += 1
+
+        entry = (
+            issue.priority,
+            self._issue_sequence,
+            issue.issue_id,
+        )
+        heapq.heappush(self._issue_queue, entry)
+        if issue.blocks_court:
+            for booking in self._bookings.values():
+                if booking.court is issue.court:
+                    booking.mark_for_review()
+
+    def pop_next_issue(self):
+        while self._issue_queue:
+            priority, sequence, issue_id = heapq.heappop(self._issue_queue)
+            issue = self._issues[issue_id]
+
+            if issue.status != "closed":
+                return issue
+
+        return None
+    
+    def is_court_operational(self, court_id):
+        if self.get_court(court_id) is None:
+            raise ValueError("Court does not exist")
+
+        for issue in self._issues.values():
+            if (
+                issue.court.court_id == court_id
+                and issue.blocks_court
+                and issue.status != "closed"
+            ):
+                return False
+
+        return True
+
+    def close_issue(self, issue_id):
+        issue = self._issues.get(issue_id)
+
+        if issue is None:
+            raise ValueError("Issue does not exist")
+
+        issue.close()
 
     def __len__(self):
         return len(self._courts)
@@ -431,5 +498,61 @@ class WaitRequest:
             f"court_id={self.court.court_id!r}, "
             f"start_time={self.start_time!r}, "
             f"duration_minutes={self.duration_minutes!r})"
-        )  
+        ) 
+class MaintenanceIssue:
+    def __init__(
+        self, issue_id, court, description, priority, blocks_court=False
+    ):
+        if type(issue_id) is not int or issue_id <= 0:
+            raise ValueError("Issue ID must be a positive integer")
+
+        if not isinstance(court, Court):
+            raise ValueError("Court must be a Court object")
+
+        if not isinstance(description, str) or not description.strip():
+            raise ValueError("Description must be a non-empty string")
+
+        if type(priority) is not int or priority not in (1, 2, 3):
+            raise ValueError("Priority must be 1, 2 or 3")
+        if type(blocks_court) is not bool:
+            raise ValueError("Blocks court must be True or False")
+
+        self.issue_id = issue_id
+        self.court = court
+        self.description = description.strip()
+        self._priority = priority
+        self._blocks_court = blocks_court
+        self._status = "open"
+
+    @property
+    def blocks_court(self):
+        return self._blocks_court
+
+    @property
+    def status(self):
+        return self._status
+
+    def close(self):
+        if self.status == "closed":
+            raise ValueError("Issue is already closed")
+
+        self._status = "closed"
+
+    @property
+    def priority(self):
+        return self._priority
+
+    def __str__(self):
+        return (
+            f"Issue #{self.issue_id}: {self.description}, "
+            f"court={self.court.name}, priority={self.priority}"
+        )
+
+    def __repr__(self):
+        return (
+            f"MaintenanceIssue(issue_id={self.issue_id!r}, "
+            f"court_id={self.court.court_id!r}, "
+            f"description={self.description!r}, "
+            f"priority={self.priority!r})"
+        ) 
 

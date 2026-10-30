@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from padelbook.models import Customer, OutdoorCourt, IndoorCourt, Booking , WaitRequest
+from padelbook.models import Customer, MaintenanceIssue, OutdoorCourt, IndoorCourt, Booking , WaitRequest
 from padelbook.models import (
     Customer,
     OutdoorCourt,
@@ -179,6 +179,82 @@ def main():
     )
 
     assert club.pop_matching_wait_request(first_booking.booking_id) is None
+    issues = [
+        MaintenanceIssue(1, courts[0], "Paint needs repair", 3),
+        MaintenanceIssue(2, courts[0], "Broken glass on court", 1),
+        MaintenanceIssue(3, courts[1], "Lighting failure", 2),
+        MaintenanceIssue(4, courts[1], "Loose fence panel", 1),
+    ]
+
+    for issue in issues:
+        club.add_issue(issue)
+
+    for expected_id in (2, 4, 3, 1):
+        issue = club.pop_next_issue()
+        assert issue.issue_id == expected_id
+        print(f"Next issue: {issue.issue_id}, priority: {issue.priority}")
+
+    assert club.pop_next_issue() is None
+    print("Empty issue queue handled")
+    club.add_issue(
+        MaintenanceIssue(
+            20, courts[0], "Damaged playing surface", 1,
+            blocks_court=True,
+        )
+    )
+    club.add_issue(
+        MaintenanceIssue(
+            21, courts[0], "Unsafe entrance gate", 1,
+            blocks_court=True,
+        )
+    )
+
+    assert not club.is_court_operational(1)
+
+    maintenance_booking = Booking(
+        30, customer, courts[0],
+        datetime(2026, 11, 11, 18, 0), 90,
+    )
+
+    try:
+        club.add_booking(maintenance_booking)
+    except ValueError as error:
+        print(error)
+
+    assert club.get_booking(30) is None
+
+    club.close_issue(20)
+    assert not club.is_court_operational(1)
+    print("Court remains blocked after closing one issue")
+
+    club.close_issue(21)
+    assert club.is_court_operational(1)
+
+    club.add_booking(maintenance_booking)
+    assert club.get_booking(30) is maintenance_booking
+    print("Court reopened and booking accepted")
+
+    assert club.pop_next_issue() is None
+    assert not maintenance_booking.requires_review
+
+    club.add_issue(
+        MaintenanceIssue(
+            22, courts[0], "New surface damage", 1,
+            blocks_court=True,
+        )
+    )
+
+    assert maintenance_booking.requires_review
+    assert maintenance_booking.status == "confirmed"
+
+    print("Existing booking marked for review")
+
+    club.close_issue(22)
+
+    assert club.is_court_operational(1)
+    assert maintenance_booking.requires_review
+
+    print("Review flag preserved after repair")
 
 if __name__ == "__main__":
     main()
