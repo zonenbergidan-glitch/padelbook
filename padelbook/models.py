@@ -453,11 +453,7 @@ class PadelClub:
             raise ValueError("Court does not exist")
 
         for issue in self._issues.values():
-            if (
-                issue.court.court_id == court_id
-                and issue.blocks_court
-                and issue.status != "closed"
-            ):
+            if issue.court.court_id == court_id and issue.is_blocking:
                 return False
 
         return True
@@ -475,6 +471,15 @@ class PadelClub:
 
     def __len__(self):
         return len(self._courts)
+    @classmethod
+    def from_dict(cls, data):
+        if not isinstance(data, dict):
+            raise ValueError("Club data must be a dictionary")
+
+        if "name" not in data:
+            raise ValueError("Club data must include name")
+
+        return cls(data["name"])
 
     def __str__(self):
         return f"{self.name}: {len(self)} courts"
@@ -523,6 +528,53 @@ class WaitRequest:
     def end_time(self):
         return self.start_time + timedelta(minutes=self.duration_minutes)
 
+    @classmethod
+    def from_dict(cls, data, customer, court):
+        if not isinstance(data, dict):
+            raise ValueError("Wait request data must be a dictionary")
+
+        required = (
+            "request_id",
+            "customer_id",
+            "court_id",
+            "start_time",
+            "duration_minutes",
+        )
+
+        if any(field not in data for field in required):
+            raise ValueError("Wait request data is missing required fields")
+
+        if not isinstance(customer, Customer):
+            raise ValueError("Customer must be a Customer object")
+
+        if not isinstance(court, Court):
+            raise ValueError("Court must be a Court object")
+
+        if (
+            type(data["customer_id"]) is not int
+            or data["customer_id"] != customer.customer_id
+        ):
+            raise ValueError("Customer ID does not match")
+
+        if (
+            type(data["court_id"]) is not int
+            or data["court_id"] != court.court_id
+        ):
+            raise ValueError("Court ID does not match")
+
+        try:
+            start_time = datetime.fromisoformat(data["start_time"])
+        except (TypeError, ValueError):
+            raise ValueError("Start time must be a valid ISO datetime string") from None
+
+        return cls(
+            data["request_id"],
+            customer,
+            court,
+            start_time,
+            data["duration_minutes"],
+        )
+
     def __str__(self):
         return (
             f"Wait request #{self.request_id}: "
@@ -570,6 +622,9 @@ class MaintenanceIssue:
     @property
     def status(self):
         return self._status
+    @property
+    def is_blocking(self):
+        return self.blocks_court and self.status != "closed"
 
     def close(self):
         if self.status == "closed":
@@ -580,6 +635,33 @@ class MaintenanceIssue:
     @property
     def priority(self):
         return self._priority
+
+    @classmethod
+    def from_dict(cls, data, court):
+        if not isinstance(data, dict):
+            raise ValueError("Issue data must be a dictionary")
+
+        required = ("issue_id", "court_id", "description", "priority")
+
+        if any(field not in data for field in required):
+            raise ValueError("Issue data is missing required fields")
+
+        if not isinstance(court, Court):
+            raise ValueError("Court must be a Court object")
+
+        if (
+            type(data["court_id"]) is not int
+            or data["court_id"] != court.court_id
+        ):
+            raise ValueError("Court ID does not match")
+
+        return cls(
+            data["issue_id"],
+            court,
+            data["description"],
+            data["priority"],
+            data.get("blocks_court", False),
+        )
 
     def __str__(self):
         return (

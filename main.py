@@ -468,6 +468,49 @@ def main():
 
     print("Timer completed even when an exception occurred")
 
+    request_from_data = WaitRequest.from_dict(
+        {
+            "request_id": 50,
+            "customer_id": 1,
+            "court_id": 1,
+            "start_time": "2026-11-25T18:00:00",
+            "duration_minutes": 90,
+        },
+        customer,
+        courts[0],
+    )
+
+    assert request_from_data.request_id == 50
+    assert request_from_data.end_time == datetime(2026, 11, 25, 19, 30)
+
+    issue_from_data = MaintenanceIssue.from_dict(
+        {
+            "issue_id": 50,
+            "court_id": 1,
+            "description": "Broken net",
+            "priority": 2,
+            "blocks_court": True,
+        },
+        courts[0],
+    )
+
+    assert issue_from_data.priority == 2
+    assert issue_from_data.blocks_court is True
+
+    club_from_data = PadelClub.from_dict({"name": "Imported Club"})
+
+    assert club_from_data.name == "Imported Club"
+    assert len(club_from_data) == 0
+
+    print("Additional dictionary constructors passed")
+
+    assert issue_from_data.is_blocking is True
+
+    issue_from_data.close()
+
+    assert issue_from_data.is_blocking is False
+    print("Closed issue no longer blocks the court")
+
 if __name__ == "__main__":
     main()
         
