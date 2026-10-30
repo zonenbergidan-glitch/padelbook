@@ -238,10 +238,16 @@ class Booking:
         if not isinstance(court, Court):
             raise ValueError("Court must be a Court object")
 
-        if data["customer_id"] != customer.customer_id:
+        if (
+            type(data["customer_id"]) is not int
+            or data["customer_id"] != customer.customer_id
+        ):
             raise ValueError("Customer ID does not match the supplied customer")
 
-        if data["court_id"] != court.court_id:
+        if (
+            type(data["court_id"]) is not int
+            or data["court_id"] != court.court_id
+        ):
             raise ValueError("Court ID does not match the supplied court")
 
         try:
@@ -518,11 +524,31 @@ class WaitRequest:
         # שימוש בבדיקת משך המשחק שכבר קיימת במגרש.
         court.calculate_price(duration_minutes)
 
-        self.request_id = request_id
-        self.customer = customer
-        self.court = court
-        self.start_time = start_time
-        self.duration_minutes = duration_minutes
+        self._request_id = request_id
+        self._customer = customer
+        self._court = court
+        self._start_time = start_time
+        self._duration_minutes = duration_minutes
+
+    @property
+    def request_id(self):
+        return self._request_id
+
+    @property
+    def customer(self):
+        return self._customer
+
+    @property
+    def court(self):
+        return self._court
+
+    @property
+    def start_time(self):
+        return self._start_time
+
+    @property
+    def duration_minutes(self):
+        return self._duration_minutes
 
     @property
     def end_time(self):
@@ -608,12 +634,20 @@ class MaintenanceIssue:
         if type(blocks_court) is not bool:
             raise ValueError("Blocks court must be True or False")
 
-        self.issue_id = issue_id
-        self.court = court
+        self._issue_id = issue_id
+        self._court = court
         self.description = description.strip()
         self._priority = priority
         self._blocks_court = blocks_court
         self._status = "open"
+
+    @property
+    def issue_id(self):
+        return self._issue_id
+
+    @property
+    def court(self):
+        return self._court
 
     @property
     def blocks_court(self):
