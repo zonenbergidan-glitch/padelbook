@@ -57,6 +57,12 @@ class Court:
         self.name = name.strip()
         self.hourly_rate = hourly_rate
 
+    def calculate_price(self, duration_minutes):
+        if type(duration_minutes) is not int or duration_minutes <= 0:
+            raise ValueError("Duration must be a positive number")
+
+        return self.hourly_rate * (duration_minutes / 60)
+
     @classmethod
     def from_dict(cls, data):
         if not isinstance(data, dict):
@@ -116,3 +122,4 @@ class IndoorCourt(Court):
             return booking_price * 0.5
 
         return booking_price
+    

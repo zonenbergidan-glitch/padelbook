@@ -30,6 +30,13 @@ def main():
         assert fee == expected, f"Expected {expected}, got {fee}"
         print(f"{court.name}: cancellation fee = {fee:.2f} NIS")
 
+    print(f"90-minute price: {courts[0].calculate_price(90):.2f} NIS")
+
+    try:
+        courts[0].calculate_price(0)
+    except ValueError as error:
+        print(error)
+
 if __name__ == "__main__":
     main()
         
