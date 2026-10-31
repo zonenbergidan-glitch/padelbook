@@ -74,6 +74,10 @@ class Court:
         self.name = name.strip()
         self.hourly_rate = hourly_rate
 
+    @property
+    def weather_exposed(self):
+     raise NotImplementedError("Court must define weather exposure")
+
 
     @property
     def hourly_rate(self):
@@ -144,6 +148,9 @@ class OutdoorCourt(Court):
             return 0
 
         return booking_price * 0.5
+    @property
+    def weather_exposed(self):
+        return True
 
 
 class IndoorCourt(Court):
@@ -157,6 +164,9 @@ class IndoorCourt(Court):
             return booking_price * 0.5
 
         return booking_price
+    @property
+    def weather_exposed(self):
+        return False
     
 class Booking:
     def __init__(
