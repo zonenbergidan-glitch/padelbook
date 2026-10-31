@@ -9,6 +9,7 @@ from datetime import timedelta
 
 from padelbook.models import IndoorCourt, PadelClub
 from padelbook.services import find_indoor_alternatives
+from padelbook.models import MaintenanceIssue
 
 
 @pytest.fixture
@@ -162,3 +163,22 @@ def test_indoor_alternative_availability(
         assert alternatives == [indoor]
     else:
         assert alternatives == []
+def test_blocked_indoor_court_is_not_suggested(
+    booking, club_with_indoor
+):
+    club, indoor = club_with_indoor
+
+    issue = MaintenanceIssue(
+        1,
+        indoor,
+        "Broken glass",
+        1,
+        blocks_court=True,
+    )
+    club.add_issue(issue)
+
+    assert find_indoor_alternatives(club, booking) == []
+
+    club.close_issue(issue.issue_id)
+
+    assert find_indoor_alternatives(club, booking) == [indoor]
