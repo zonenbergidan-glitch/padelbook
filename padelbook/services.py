@@ -1,5 +1,6 @@
 import math
 from zoneinfo import ZoneInfo
+from padelbook import config
 
 from padelbook.weather_client import WeatherClient
 class WeatherPolicy:
@@ -45,7 +46,7 @@ def assess_booking_weather(booking, forecast, policy=None):
     except ValueError:
         return "unknown"
 
-    timezone = ZoneInfo("Asia/Jerusalem")
+    timezone = ZoneInfo(config.CLUB_TIMEZONE)
     start = booking.start_time.replace(tzinfo=timezone).timestamp()
     end = booking.end_time.replace(tzinfo=timezone).timestamp()
 

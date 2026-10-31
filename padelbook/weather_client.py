@@ -3,15 +3,16 @@ import time
 
 import requests
 import math
+from padelbook import config
 
 
 logger = logging.getLogger(__name__)
 
 
 class WeatherClient:
-    URL = "https://api.open-meteo.com/v1/forecast"
-    MAX_ATTEMPTS = 3
-    RETRY_DELAY = 1
+    URL = config.WEATHER_API_URL
+    MAX_ATTEMPTS = config.WEATHER_MAX_ATTEMPTS
+    RETRY_DELAY = config.WEATHER_RETRY_DELAY_SECONDS
 
     @staticmethod
     def validate_forecast(data):
@@ -63,9 +64,9 @@ class WeatherClient:
             "longitude": longitude,
             "hourly": "rain,wind_speed_10m",
             "wind_speed_unit": "kmh",
-            "timezone": "Asia/Jerusalem",
+            "timezone": config.CLUB_TIMEZONE,
             "timeformat": "unixtime",
-            "forecast_days": 16,
+            "forecast_days":config.WEATHER_FORECAST_DAYS,
         }
 
         for attempt in range(1, self.MAX_ATTEMPTS + 1):
@@ -73,7 +74,7 @@ class WeatherClient:
                 response = requests.get(
                     self.URL,
                     params=params,
-                    timeout=10,
+                    timeout=config.WEATHER_TIMEOUT_SECONDS,
                 )
                 response.raise_for_status()
 
