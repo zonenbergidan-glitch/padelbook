@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta
 from collections import deque 
 import heapq
+from threading import Lock
+
 class Customer:
     def __init__(self, customer_id, name):
         if type(customer_id) is not int or customer_id <= 0:
@@ -344,6 +346,7 @@ class PadelClub:
         self._issues = {}
         self._issue_queue = []
         self._issue_sequence = 0
+        self._booking_lock = Lock()
 
     def add_court(self, court):
         if not isinstance(court, Court):
@@ -359,8 +362,11 @@ class PadelClub:
 
     def get_courts(self):
         return list(self._courts.values())
-
     def add_booking(self, booking):
+        with self._booking_lock:
+            return self._add_booking_unlocked(booking)
+
+    def _add_booking_unlocked(self, booking):
         if not isinstance(booking, Booking):
             raise ValueError("Booking must be a Booking object")
 
