@@ -496,5 +496,24 @@ def main():
 
 
 if __name__ == "__main__":
+    import asyncio
+    import logging
+
+    from demo_weather import main as run_weather_demo
+    from demo_async import main as run_async_demo
+    from demo_threads import main as run_threads_demo
+
+    logging.basicConfig(level=logging.INFO)
+
+    print("\n=== Stage 1: club management ===")
     main()
+
+    print("\n=== Stage 2: weather review ===")
+    run_weather_demo()
+
+    print("\n=== Stage 2: async timing comparison ===")
+    asyncio.run(run_async_demo())
+
+    print("\n=== Stage 2: concurrent booking requests ===")
+    run_threads_demo()
         
