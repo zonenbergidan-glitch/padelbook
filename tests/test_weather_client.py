@@ -69,7 +69,14 @@ def test_weather_request_recovers_after_failure(
     monkeypatch, error_class
 ):
     response = Mock()
-    response.json.return_value = {"hourly": {}}
+    payload = {
+        "hourly": {
+            "time": [1793440800],
+            "rain": [0.0],
+            "wind_speed_10m": [10.0],
+        }
+    }
+    response.json.return_value = payload
 
     mock_get = Mock(
         side_effect=[
@@ -90,7 +97,7 @@ def test_weather_request_recovers_after_failure(
         32.0853, 34.7818
     )
 
-    assert result == {"hourly": {}}
+    assert result == payload
     assert mock_get.call_count == 2
     mock_sleep.assert_called_once_with(1)
 
@@ -119,3 +126,50 @@ def test_weather_request_stops_after_three_failures(
 
     assert mock_get.call_count == 3
     assert mock_sleep.call_count == 2
+@pytest.mark.parametrize(
+    "payload",
+    [
+        None,
+        {},
+        {"hourly": {}},
+        {
+            "hourly": {
+                "time": [1793440800],
+                "rain": [],
+                "wind_speed_10m": [10],
+            }
+        },
+        {
+            "hourly": {
+                "time": [1793440800],
+                "rain": [-1],
+                "wind_speed_10m": [10],
+            }
+        },
+        {
+            "hourly": {
+                "time": [1793440800],
+                "rain": [0],
+                "wind_speed_10m": [None],
+            }
+        },
+    ],
+)
+def test_weather_client_rejects_invalid_payload(
+    monkeypatch, payload
+):
+    response = Mock()
+    response.json.return_value = payload
+    mock_get = Mock(return_value=response)
+
+    monkeypatch.setattr(
+        "padelbook.weather_client.requests.get",
+        mock_get,
+    )
+
+    with pytest.raises(ValueError):
+        WeatherClient().get_hourly_forecast(
+            32.0853, 34.7818
+        )
+
+    mock_get.assert_called_once()
