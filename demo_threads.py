@@ -1,6 +1,5 @@
-from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from threading import Barrier
+from threading import Barrier, Thread
 
 from padelbook.models import (
     Booking,
@@ -28,18 +27,29 @@ def main():
 
     barrier = Barrier(2)
 
-    def submit_booking(booking):
+    results = [None] * len(bookings)
+
+    def submit_booking(index, booking):
         barrier.wait(timeout=5)
 
         try:
             club.add_booking(booking)
         except ValueError as error:
-            return booking.booking_id, False, str(error)
+            results[index] = (booking.booking_id, False, str(error))
+            return
 
-        return booking.booking_id, True, "Accepted"
+        results[index] = (booking.booking_id, True, "Accepted")
 
-    with ThreadPoolExecutor(max_workers=2) as executor:
-        results = list(executor.map(submit_booking, bookings))
+    threads = [
+        Thread(target=submit_booking, args=(index, booking))
+        for index, booking in enumerate(bookings)
+    ]
+
+    for thread in threads:
+        thread.start()
+
+    for thread in threads:
+        thread.join()
 
     for booking_id, accepted, message in results:
         status = "accepted" if accepted else "rejected"
