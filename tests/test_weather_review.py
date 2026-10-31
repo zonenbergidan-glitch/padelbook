@@ -10,6 +10,7 @@ from datetime import timedelta
 from padelbook.models import IndoorCourt, PadelClub
 from padelbook.services import find_indoor_alternatives
 from padelbook.models import MaintenanceIssue
+from padelbook.services import review_booking_weather
 
 
 @pytest.fixture
@@ -182,3 +183,56 @@ def test_blocked_indoor_court_is_not_suggested(
     club.close_issue(issue.issue_id)
 
     assert find_indoor_alternatives(club, booking) == [indoor]
+@pytest.mark.parametrize(
+    "rain_mm, expected_assessment, expected_review",
+    [
+        (0, "not_required", False),
+        (2, "review_required", True),
+        (None, "unknown", True),
+    ],
+)
+def test_complete_weather_review(
+    booking,
+    club_with_indoor,
+    rain_mm,
+    expected_assessment,
+    expected_review,
+):
+    club, indoor = club_with_indoor
+    forecast = None
+
+    if rain_mm is not None:
+        timezone = ZoneInfo("Asia/Jerusalem")
+        times = [
+            int(
+                booking.start_time.replace(
+                    hour=hour,
+                    minute=0,
+                    tzinfo=timezone,
+                ).timestamp()
+            )
+            for hour in (18, 19, 20)
+        ]
+
+        forecast = {
+            "hourly": {
+                "time": times,
+                "rain": [0, 0, rain_mm],
+                "wind_speed_10m": [10, 10, 10],
+            }
+        }
+
+    result = review_booking_weather(club, booking, forecast)
+
+    assert result["assessment"] == expected_assessment
+    assert result["requires_review"] is expected_review
+    assert booking.requires_review is expected_review
+
+    expected_alternatives = (
+        [indoor.court_id] if expected_review else []
+    )
+    assert result["alternative_court_ids"] == expected_alternatives
+
+    assert booking.status == "confirmed"
+    assert booking.court.weather_exposed is True
+    assert len(club.get_bookings()) == 1

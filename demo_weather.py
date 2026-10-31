@@ -6,8 +6,10 @@ from zoneinfo import ZoneInfo
 import requests
 
 from padelbook.models import Customer, OutdoorCourt, Booking
-from padelbook.services import assess_booking_weather
+from padelbook.services import review_booking_weather
 from padelbook.weather_client import WeatherClient
+from padelbook.models import PadelClub
+from padelbook.factories import create_court
 
 
 def main():
@@ -32,7 +34,17 @@ def main():
         start,
         90,
     )
+    club = PadelClub("Weather Demo Club")
+    club.add_court(booking.court)
 
+    indoor = create_court(
+        "indoor",
+        court_id=2,
+        name="Indoor A",
+        hourly_rate=160,
+    )
+    club.add_court(indoor)
+    club.add_booking(booking)
     if args.live:
         source = "Live API"
         try:
@@ -63,13 +75,20 @@ def main():
             }
         }
 
-    result = assess_booking_weather(booking, forecast)
+    result = review_booking_weather(club, booking, forecast)
 
     print(f"Source: {source}")
     print(f"Booking starts: {booking.start_time}")
     print(f"Booking ends: {booking.end_time}")
-    print(f"Weather assessment: {result}")
+    print(f"Weather assessment: {result['assessment']}")
+    print(f"Requires review: {result['requires_review']}")
+    print(
+        f"Indoor alternatives: "
+        f"{result['alternative_court_ids']}"
+    )
+    print(f"Original court: {booking.court.court_id}")
     print(f"Booking status: {booking.status}")
+    print(f"Stored bookings: {len(club.get_bookings())}")
 
 
 if __name__ == "__main__":

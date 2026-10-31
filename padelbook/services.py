@@ -122,3 +122,30 @@ def find_indoor_alternatives(club, booking):
             alternatives.append(court)
 
     return alternatives
+
+def review_booking_weather(club, booking, forecast, policy=None):
+    if club.get_booking(booking.booking_id) is not booking:
+        raise ValueError("Booking must be registered in this club")
+
+    if booking.status != "confirmed":
+        raise ValueError("Only confirmed bookings can be reviewed")
+
+    assessment = assess_booking_weather(
+        booking,
+        forecast,
+        policy=policy,
+    )
+
+    alternatives = []
+
+    if assessment in ("review_required", "unknown"):
+        booking.mark_for_review()
+        alternatives = find_indoor_alternatives(club, booking)
+
+    return {
+        "assessment": assessment,
+        "requires_review": booking.requires_review,
+        "alternative_court_ids": [
+            court.court_id for court in alternatives
+        ],
+    }

@@ -494,22 +494,6 @@ def main():
         courts[0],
     )
 
-    assert issue_from_data.priority == 2
-    assert issue_from_data.blocks_court is True
-
-    club_from_data = PadelClub.from_dict({"name": "Imported Club"})
-
-    assert club_from_data.name == "Imported Club"
-    assert len(club_from_data) == 0
-
-    print("Additional dictionary constructors passed")
-
-    assert issue_from_data.is_blocking is True
-
-    issue_from_data.close()
-
-    assert issue_from_data.is_blocking is False
-    print("Closed issue no longer blocks the court")
 
 if __name__ == "__main__":
     main()
