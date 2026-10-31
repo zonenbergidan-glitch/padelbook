@@ -31,3 +31,55 @@ def test_weather_review_for_rain(court_class, expected):
     )
 
     assert result is expected
+
+@pytest.fixture
+def outdoor_booking():
+    customer = Customer(1, "Demo Player")
+    court = OutdoorCourt(1, "Outdoor A", 160)
+
+    return Booking(
+        1,
+        customer,
+        court,
+        datetime(2026, 11, 20, 18),
+        90,
+    )
+
+
+@pytest.mark.parametrize(
+    "rain_mm, wind_kmh, expected",
+    [
+        (0, 10, False),
+        (0.9, 34.9, False),
+        (1, 10, True),
+        (0, 35, True),
+        (0, 50, True),
+        (2, 40, True),
+    ],
+)
+def test_outdoor_weather_thresholds(
+    outdoor_booking, rain_mm, wind_kmh, expected
+):
+    result = requires_weather_review(
+        outdoor_booking,
+        rain_mm=rain_mm,
+        wind_kmh=wind_kmh,
+    )
+
+    assert result is expected
+
+
+def test_indoor_court_ignores_rain_and_wind():
+    customer = Customer(1, "Demo Player")
+    court = IndoorCourt(1, "Indoor A", 160)
+    booking = Booking(
+        1,
+        customer,
+        court,
+        datetime(2026, 11, 20, 18),
+        90,
+    )
+
+    assert requires_weather_review(
+        booking, rain_mm=10, wind_kmh=60
+    ) is False
