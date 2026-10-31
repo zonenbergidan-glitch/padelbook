@@ -8,8 +8,8 @@ from padelbook.async_services import (
 
 
 class SimulatedWeatherClient:
-    def get_hourly_forecast(self, latitude, longitude):
-        time.sleep(0.4)
+    async def get_hourly_forecast(self, latitude, longitude):
+        await asyncio.sleep(0.4)
 
         return {
             "latitude": latitude,

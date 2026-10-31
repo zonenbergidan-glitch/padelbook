@@ -9,15 +9,23 @@ from padelbook.weather_client import WeatherClient
 logger = logging.getLogger(__name__)
 
 
+class AsyncWeatherClient:
+    def __init__(self, client=None):
+        self.client = client if client is not None else WeatherClient()
+
+    async def get_hourly_forecast(self, latitude, longitude):
+        return await asyncio.to_thread(
+            self.client.get_hourly_forecast,
+            latitude,
+            longitude,
+        )
+
+
 async def fetch_one_forecast(client, location):
     latitude, longitude = location
 
     try:
-        return await asyncio.to_thread(
-            client.get_hourly_forecast,
-            latitude,
-            longitude,
-        )
+        return await client.get_hourly_forecast(latitude, longitude)
     except (requests.RequestException, ValueError):
         logger.warning(
             "Forecast unavailable for location %s",
@@ -28,7 +36,7 @@ async def fetch_one_forecast(client, location):
 
 async def fetch_forecasts_serial(locations, client=None):
     if client is None:
-        client = WeatherClient()
+        client = AsyncWeatherClient()
 
     results = []
 
@@ -41,7 +49,7 @@ async def fetch_forecasts_serial(locations, client=None):
 
 async def fetch_forecasts_parallel(locations, client=None):
     if client is None:
-        client = WeatherClient()
+        client = AsyncWeatherClient()
 
     tasks = [
         fetch_one_forecast(client, location)

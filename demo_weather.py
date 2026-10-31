@@ -1,25 +1,50 @@
 import argparse
 import logging
+import math
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import requests
 
 from padelbook.models import Customer, OutdoorCourt, Booking
-from padelbook.services import review_booking_weather
+from padelbook.services import (
+    NormalWeatherPolicy,
+    StrictWeatherPolicy,
+    review_booking_weather,
+)
 from padelbook.weather_client import WeatherClient
 from padelbook.models import PadelClub
 from padelbook.factories import create_court
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--live",
         action="store_true",
         help="Fetch a real forecast from Open-Meteo",
     )
-    args = parser.parse_args()
+    parser.add_argument(
+        "--policy",
+        choices=("normal", "strict"),
+        default="normal",
+        help="Weather policy chosen by the club manager",
+    )
+    parser.add_argument(
+        "--demo-rain-mm",
+        type=float,
+        default=2.0,
+        help="Rain in the final offline forecast hour; ignored with --live",
+    )
+    args = parser.parse_args(argv)
+
+    if not math.isfinite(args.demo_rain_mm) or args.demo_rain_mm < 0:
+        parser.error("--demo-rain-mm must be finite and non-negative")
+
+    if args.policy == "strict":
+        policy = StrictWeatherPolicy()
+    else:
+        policy = NormalWeatherPolicy()
 
     timezone = ZoneInfo("Asia/Jerusalem")
     tomorrow = datetime.now(timezone).date() + timedelta(days=1)
@@ -70,14 +95,17 @@ def main():
         forecast = {
             "hourly": {
                 "time": times,
-                "rain": [0, 0, 2],
+                "rain": [0, 0, args.demo_rain_mm],
                 "wind_speed_10m": [10, 10, 10],
             }
         }
 
-    result = review_booking_weather(club, booking, forecast)
+    result = review_booking_weather(
+        club, booking, forecast, policy=policy
+    )
 
     print(f"Source: {source}")
+    print(f"Weather policy: {args.policy}")
     print(f"Booking starts: {booking.start_time}")
     print(f"Booking ends: {booking.end_time}")
     print(f"Weather assessment: {result['assessment']}")
