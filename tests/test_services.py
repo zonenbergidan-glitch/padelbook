@@ -3,7 +3,11 @@ from datetime import datetime
 import pytest
 
 from padelbook.models import Customer, OutdoorCourt, IndoorCourt, Booking
-from padelbook.services import requires_weather_review
+from padelbook.services import (
+    requires_weather_review,
+    NormalWeatherPolicy,
+    StrictWeatherPolicy,
+)
 
 
 @pytest.mark.parametrize(
@@ -83,3 +87,36 @@ def test_indoor_court_ignores_rain_and_wind():
     assert requires_weather_review(
         booking, rain_mm=10, wind_kmh=60
     ) is False
+
+@pytest.mark.parametrize(
+    "rain_mm, wind_kmh, normal_expected, strict_expected",
+    [
+        (0, 10, False, False),
+        (0.5, 10, False, True),
+        (0, 25, False, True),
+        (0.4, 24.9, False, False),
+        (1, 35, True, True),
+    ],
+)
+def test_weather_policy_selection(
+    outdoor_booking,
+    rain_mm,
+    wind_kmh,
+    normal_expected,
+    strict_expected,
+):
+    normal_result = requires_weather_review(
+        outdoor_booking,
+        rain_mm,
+        wind_kmh,
+        policy=NormalWeatherPolicy(),
+    )
+    strict_result = requires_weather_review(
+        outdoor_booking,
+        rain_mm,
+        wind_kmh,
+        policy=StrictWeatherPolicy(),
+    )
+
+    assert normal_result is normal_expected
+    assert strict_result is strict_expected
