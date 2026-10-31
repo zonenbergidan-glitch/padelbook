@@ -90,3 +90,35 @@ def assess_booking_weather(booking, forecast, policy=None):
         return "review_required"
 
     return "not_required"
+
+def find_indoor_alternatives(club, booking):
+    alternatives = []
+    bookings = club.get_bookings()
+
+    for court in club.get_courts():
+        if court.weather_exposed:
+            continue
+
+        if not club.is_court_operational(court.court_id):
+            continue
+
+        available = True
+
+        for existing in bookings:
+            if existing.status != "confirmed":
+                continue
+
+            if existing.court.court_id != court.court_id:
+                continue
+
+            if (
+                booking.start_time < existing.end_time
+                and existing.start_time < booking.end_time
+            ):
+                available = False
+                break
+
+        if available:
+            alternatives.append(court)
+
+    return alternatives

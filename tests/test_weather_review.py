@@ -5,6 +5,10 @@ import pytest
 
 from padelbook.models import Customer, OutdoorCourt, Booking
 from padelbook.services import assess_booking_weather
+from datetime import timedelta
+
+from padelbook.models import IndoorCourt, PadelClub
+from padelbook.services import find_indoor_alternatives
 
 
 @pytest.fixture
@@ -104,3 +108,57 @@ def test_indoor_booking_does_not_need_forecast():
     assert result == "not_required"
     assert booking.status == "confirmed"
     assert booking.requires_review is False
+
+@pytest.fixture
+def club_with_indoor(booking):
+    club = PadelClub("Demo Club")
+    indoor = IndoorCourt(2, "Indoor A", 160)
+
+    club.add_court(booking.court)
+    club.add_court(indoor)
+    club.add_booking(booking)
+
+    return club, indoor
+
+
+def test_suggests_free_indoor_court(booking, club_with_indoor):
+    club, indoor = club_with_indoor
+
+    alternatives = find_indoor_alternatives(club, booking)
+
+    assert alternatives == [indoor]
+    assert booking.court.weather_exposed is True
+    assert booking.status == "confirmed"
+
+
+@pytest.mark.parametrize(
+    "offset_minutes, expected_available",
+    [
+        (-60, True),
+        (0, False),
+        (90, True),
+    ],
+)
+def test_indoor_alternative_availability(
+    booking,
+    club_with_indoor,
+    offset_minutes,
+    expected_available,
+):
+    club, indoor = club_with_indoor
+
+    existing = Booking(
+        2,
+        booking.customer,
+        indoor,
+        booking.start_time + timedelta(minutes=offset_minutes),
+        60,
+    )
+    club.add_booking(existing)
+
+    alternatives = find_indoor_alternatives(club, booking)
+
+    if expected_available:
+        assert alternatives == [indoor]
+    else:
+        assert alternatives == []

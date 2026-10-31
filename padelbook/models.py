@@ -357,6 +357,9 @@ class PadelClub:
     def get_court(self, court_id):
         return self._courts.get(court_id)
 
+    def get_courts(self):
+        return list(self._courts.values())
+
     def add_booking(self, booking):
         if not isinstance(booking, Booking):
             raise ValueError("Booking must be a Booking object")
