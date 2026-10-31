@@ -79,3 +79,28 @@ def test_assess_booking_weather(
     assert result == expected
     assert booking.status == "confirmed"
     assert booking.requires_review is False
+
+def test_missing_forecast_returns_unknown(booking):
+    result = assess_booking_weather(booking, None)
+
+    assert result == "unknown"
+    assert booking.status == "confirmed"
+    assert booking.requires_review is False
+
+
+def test_indoor_booking_does_not_need_forecast():
+    from padelbook.models import IndoorCourt
+
+    booking = Booking(
+        2,
+        Customer(1, "Demo Player"),
+        IndoorCourt(2, "Indoor A", 160),
+        datetime(2026, 11, 20, 18, 30),
+        90,
+    )
+
+    result = assess_booking_weather(booking, None)
+
+    assert result == "not_required"
+    assert booking.status == "confirmed"
+    assert booking.requires_review is False
