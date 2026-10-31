@@ -120,3 +120,23 @@ def test_weather_policy_selection(
 
     assert normal_result is normal_expected
     assert strict_result is strict_expected
+@pytest.mark.parametrize(
+    "rain_mm, wind_kmh",
+    [
+        (-1, 10),
+        (0, -1),
+        ("2", 10),
+        (0, None),
+        (True, 10),
+        (float("nan"), 10),
+        (0, float("inf")),
+        (0, float("-inf")),
+    ],
+)
+def test_invalid_weather_data(outdoor_booking, rain_mm, wind_kmh):
+    with pytest.raises(ValueError):
+        requires_weather_review(
+            outdoor_booking,
+            rain_mm=rain_mm,
+            wind_kmh=wind_kmh,
+        )

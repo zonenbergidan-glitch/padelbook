@@ -1,3 +1,4 @@
+import math
 class WeatherPolicy:
     def requires_review(self, rain_mm, wind_kmh):
         raise NotImplementedError("Weather policy must define review rules")
@@ -15,6 +16,18 @@ class StrictWeatherPolicy(WeatherPolicy):
 def requires_weather_review(booking, rain_mm, wind_kmh, policy=None):
     if not booking.court.weather_exposed:
         return False
+
+    for name, value in (
+        ("rain_mm", rain_mm),
+        ("wind_kmh", wind_kmh),
+    ):
+        if type(value) not in (int, float):
+            raise ValueError(f"{name} must be a number")
+
+        if not math.isfinite(value) or value < 0:
+            raise ValueError(
+                f"{name} must be finite and non-negative"
+            )
 
     if policy is None:
         policy = NormalWeatherPolicy()
