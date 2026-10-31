@@ -3,6 +3,7 @@ from unittest.mock import Mock
 
 import pytest
 import requests
+from threading import Event
 
 from padelbook.async_services import (
     fetch_forecasts_serial,
@@ -81,3 +82,33 @@ def test_empty_locations_make_no_requests(fetch_function):
 
     assert results == []
     client.get_hourly_forecast.assert_not_called()
+def test_parallel_results_preserve_input_order():
+    locations = [(1, 1), (2, 2), (3, 3)]
+    finished = {number: Event() for number in (1, 2, 3)}
+    completion_order = []
+
+    def fake_forecast(latitude, longitude):
+        if latitude < 3:
+            next_finished = finished[latitude + 1]
+
+            if not next_finished.wait(timeout=5):
+                raise RuntimeError("Tasks did not run concurrently")
+
+        completion_order.append(latitude)
+        finished[latitude].set()
+
+        return {"location": (latitude, longitude)}
+
+    client = Mock()
+    client.get_hourly_forecast.side_effect = fake_forecast
+
+    results = asyncio.run(
+        fetch_forecasts_parallel(locations, client)
+    )
+
+    assert completion_order == [3, 2, 1]
+    assert results == [
+        {"location": (1, 1)},
+        {"location": (2, 2)},
+        {"location": (3, 3)},
+    ]
